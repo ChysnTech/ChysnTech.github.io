@@ -9,6 +9,7 @@
 <body>
     <div class="container">
 
+        <!-- ===== 左侧栏（固定） ===== -->
         <nav class="sidebar">
             <div class="sidebar-header">
                 <img src="files/profile.jpeg" alt="ChysnTech" class="sidebar-avatar">
@@ -29,18 +30,96 @@
             </div>
         </nav>
 
-        <main class="content">
-            <div class="markdown-body">
+        <!-- ===== 右侧内容区（动态加载文章） ===== -->
+        <main class="content" id="content-area">
+            <div class="markdown-body" id="article-content">
+                <!-- 默认显示文章列表 -->
                 <h1>文章</h1>
-                <ul class="post-list">
-                    <li>
-                        <a href="blogs/post-1.html">第一篇示例文章</a>
-                        <span class="post-date">2026-09-06</span>
-                    </li>
+                <ul class="post-list" id="post-list">
+                    <!-- 由 JavaScript 动态生成 -->
                 </ul>
             </div>
         </main>
 
     </div>
+
+    <script>
+        // 文章数据：标题、日期、内容文件路径
+        const posts = [
+            {
+                title: '第一篇示例文章',
+                date: '2026-09-06',
+                file: 'blogs/post-1-content.html'
+            },
+            {
+                title: '如何发文章',
+                date: '2026-09-07',
+                file: 'blogs/post-2-content.html'
+            }
+        ];
+
+        // 获取 URL 参数
+        function getParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+
+        // 加载文章内容
+        function loadPost(file) {
+            fetch(file)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('article-content').innerHTML = html;
+                })
+                .catch(err => {
+                    document.getElementById('article-content').innerHTML = '<h1>加载失败</h1><p>请刷新重试。</p>';
+                });
+        }
+
+        // 渲染文章列表
+        function renderList() {
+            const list = document.getElementById('post-list');
+            let html = '';
+            posts.forEach(post => {
+                html += `<li>
+                    <a href="?post=${encodeURIComponent(post.file)}">${post.title}</a>
+                    <span class="post-date">${post.date}</span>
+                </li>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // 检查 URL 参数，决定显示列表还是文章
+        const postFile = getParam('post');
+        if (postFile) {
+            loadPost(postFile);
+        } else {
+            renderList();
+        }
+
+        // 点击文章链接时，不刷新页面直接加载
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.includes('?post=')) {
+                e.preventDefault();
+                const url = new URL(link.href);
+                const file = url.searchParams.get('post');
+                if (file) {
+                    window.history.pushState({}, '', '?post=' + encodeURIComponent(file));
+                    loadPost(file);
+                }
+            }
+        });
+
+        // 浏览器后退/前进时恢复状态
+        window.addEventListener('popstate', function() {
+            const postFile = getParam('post');
+            if (postFile) {
+                loadPost(postFile);
+            } else {
+                renderList();
+            }
+        });
+    </script>
 </body>
 </html>
